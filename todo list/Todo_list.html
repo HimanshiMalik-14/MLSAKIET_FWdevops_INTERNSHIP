@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+              integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+        <style>
+            body {
+                background-color: #eee3fa;
+                font-family: Arial, sans-serif;
+            }
+
+            #cont {
+                border-radius: 20px;
+                background-color: whitesmoke;
+                padding: 30px;
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+                border-top: 8px solid #7835E7;
+                border-bottom: 8px solid #7835E7;
+                user-select: none;
+            }
+
+            .todoList {
+                border-radius: 10px;
+                background-color: white;
+                padding: 15px;
+                margin: 10px 0;
+                transition: all 0.3s ease;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: move;
+            }
+            .todoList:hover {
+                background-color: #f3f3f3;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            }
+
+            .btn-primary {
+                background-color: #7835E7;
+                border: none;
+                transition: all 0.3s ease;
+            }
+            .btn-primary:hover {
+                background-color: #5c27b5;
+            }
+            .btn-primary:focus, .btn-primary:active {
+                background-color: #5c27b5;
+                border-color: #5c27b5;
+                outline: none;
+            }
+
+            .pText {
+                font-size: 1rem;
+                font-weight: 500;
+                margin: 0;
+                user-select: none;
+            }
+
+            .fade-in {
+                animation: fadeIn 0.5s;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                }
+                to {
+                    opacity: 1;
+                }
+            }
+
+            .dragging {
+                background-color: #d9d9d9;
+                opacity: 0.7;
+            }
+
+            .nothingToDo {
+                text-align: center;
+                font-size: 1.5rem;
+                color: gray;
+                margin: 20px 0;
+                animation: fadeIn 0.5s;
+            }
+
+            .btn-danger {
+                display: none;
+            }
+
+            .footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                padding: 10px 0;
+                text-align: center;
+                box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+                z-index: 999;
+                display: flex; justify-content: center; user-select: none;
+            }
+            .footer a {
+                color: #7835E7;
+                text-decoration: none;
+            }
+            .footer a:hover {
+                text-decoration: underline;
+            }
+
+        </style>
+        <title>ToDo List</title>
+    </head>
+    <body>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                showItem();
+            });
+
+            const SaveData = (event) => {
+                event.preventDefault();
+                const dataInput = document.getElementById('data');
+                const task = dataInput.value.trim();
+
+                if (task === '') {
+                    Swal.fire({
+                        title: "Input Field is Empty!",
+                        allowOutsideClick: () => {
+                            const popup = Swal.getPopup();
+                            popup.classList.remove("swal2-show");
+                            setTimeout(() => {
+                                popup.classList.add("animate__animated", "animate__headShake");
+                            });
+                            setTimeout(() => {
+                                popup.classList.remove("animate__animated", "animate__headShake");
+                            }, 500);
+                            return;
+                        },
+                    });
+                    dataInput.classList.add('is-invalid');
+                    return;
+                } else {
+                    dataInput.classList.remove('is-invalid');
+                }
+
+                let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+                if (tasks.includes(task)) {
+                    Swal.fire({
+                        title: "Task already exists!",
+                        icon: "warning",
+                    });
+                    return;
+                }
+
+                tasks.push(task);
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+                showItem();
+                document.getElementById('newForm').reset();
+                Swal.fire({
+                    title: "Task Added!",
+                    icon: "success",
+                });
+            };
+
+            const showItem = () => {
+                let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+                let itemContainer = document.querySelector('.todoLists');
+                let clearButton = document.querySelector('.btn-danger');
+                let nothingToDoMessage = document.querySelector('.nothingToDo');
+
+                if (tasks.length === 0) {
+                    itemContainer.innerHTML = '';
+                    nothingToDoMessage.style.display = 'block';
+                    clearButton.style.display = 'none';
+                } else {
+                    nothingToDoMessage.style.display = 'none';
+                    clearButton.style.display = 'block';
+                    itemContainer.innerHTML = tasks.map((task, index) =>
+                        `<div class="todoList fade-in" data-index="${index}">
+                                    <p class="pText">${index + 1}. ${task}</p>
+                                    <button class="btn btn-primary" onClick="deleteItem(${index})">Delete</button>
+                                </div>`
+                    ).join('');
+                }
+                initializeSortable();
+            };
+
+            const deleteItem = (index) => {
+                let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+                tasks.splice(index, 1);
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+                showItem();
+                Swal.fire({
+                    title: "Task Deleted!",
+                    icon: "success",
+                });
+            };
+
+            const clearTask = () => {
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "You won't be able to recover these tasks!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#7835E7',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Yes, clear all!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        localStorage.removeItem('tasks');
+                        showItem();
+                        Swal.fire({
+                            title: 'Tasks Cleared!',
+                            icon: 'success',
+                        });
+                    }
+                });
+            };
+
+            const initializeSortable = () => {
+                const el = document.querySelector('.todoLists');
+                Sortable.create(el, {
+                    animation: 150,
+                    onEnd: (evt) => {
+                        reorderTasks(evt.oldIndex, evt.newIndex);
+                    }
+                });
+            };
+
+            const reorderTasks = (oldIndex, newIndex) => {
+                let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+                const movedTask = tasks.splice(oldIndex, 1)[0];
+                tasks.splice(newIndex, 0, movedTask);
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+                showItem();
+            };
+        </script>
+
+        <div class="container col-lg-5 mb-5 mt-5" id="cont">
+            <h1 class="text-center mb-4">ToDo List</h1>
+            <form id="newForm" onsubmit="SaveData(event)">
+                <div class="row mb-4">
+                    <div class="col-lg-8">
+                        <input type="text" placeholder="What do you want to do?" id="data" class="form-control">
+                    </div>
+                    <div class="col">
+                        <button type="submit" class="btn btn-primary w-100">Add Task</button>
+                    </div>
+                </div>
+                <h2 class="mb-4">What's Next...</h2>
+                <div class="todoLists"></div>
+                <div class="nothingToDo">Nothing to do!</div>
+                <div class="text-center mt-4" style="display: flex; justify-content: center">
+                    <button type="button" class="btn btn-danger" onclick="clearTask()">Clear All Tasks</button>
+                </div>
+            </form>
+        </div>
+        <div class="footer">
+            Designed by &nbsp;<a href="#">Himanshi Malik</a>
+        </div>
+    </body>
+</html>
